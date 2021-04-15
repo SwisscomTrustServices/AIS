@@ -351,6 +351,8 @@ if [ "$RC" = "0" -a "$http_code" = "200" ]; then
     echo "FAILED on $FILE with following details:"
     echo " curl error : $CURL_ERR"
     echo " http error : $http_code"
+		echo " curl log   :\n"
+		cat $TMP.curl.log
   fi
 fi
 
