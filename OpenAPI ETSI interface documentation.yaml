@@ -1,1093 +1,208 @@
 openapi: 3.0.1
 info:
-  title: Swisscom Registration Authority Service API (RA-Service)
-  description: 'RA Service has implemented the following business functions: <br>• Encrypted storage of ID document metadata (according to legal regulation on electronic signatures), ID document images, and linked authenticator identifiers (MSISDN, Mobile ID Serial Number or PWD/OTP Serial Number) of the ID document holder<br>• Encrypted storage of the evidences of the ID registration process (vetter''s data and signature, ID docu-ment, signed user consent)<br>• User Consent flow in the ID registration process<br>• RESTful API for verifying user metadata, the linked MSISDN, and the compliance level of ID registration process for digital signature purpose<br>• RESTful API for authentication of privileged users with Mobile ID<br>• RESTful API for importing ID document metadata, ID document images, MSISDN and ID registration evi-dences for digital signature in the banking context.<br>'
-  contact:
-    name: Swisscom Trust Services
-    url: https://trustservices.swisscom.com/
-    email: Servicedesk.ICT@swisscom.com
-  version: 2.41.2.63
-servers:
-  - url: https://ras-preprod.scapp.swisscom.com
-security:
-  - JWT: []
-tags:
-  - name: RA Mobile App
-    description: RA Mobile App related APIs
-  - name: AIS
-    description: AIS related APIs
-  - name: Security
-    description: Security related APIs
-  - name: System Info
-    description: System info APIs
-  - name: Evidence
-    description: Evidence related APIs
-  - name: RA-X
-    description: Evidence related APIs for RA-X
+  title: All-in Signing Service REST Application
+  description: All-in Signing Service
+  contact: {}
+  license:
+    name: Commercial
+    url: ''
+  version: '3'
 paths:
-  /api/evidences/auth:
+  /signatures/signDoc:
     post:
       tags:
-        - RA-X
-      summary: lookup the authentication method associated to the user evidence
-      description: Given the email address, mobile number oruser uuid, the api return the associated authenticator
-      operationId: verifyEvidence
+        - signatures
+      summary: Request creation of AdES signatures
+      operationId: signDoc
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserAuthMethodRequestDto'
-        required: true
+              $ref: '#/components/schemas/SignDocRequest'
+            example:
+              SAD: eyJh...Mmw
+              requestID: fdf41e6a-382a-4512-afe9-fd2a9bab30d7
+              credentialID: OnDemand-Qualified
+              profile: http://uri.etsi.org/19432/v1.1.1#/creationprofile#
+              signatureFormat: P
+              conformanceLevel: AdES-B-LT
+              documentDigests:
+                hashAlgorithmOID: 2.16.840.1.101.3.4.2.1
+                hashes:
+                  - HLNTuE2+zWOo+p1VfQdjdEjDC9xcLfVdqdHYX2gwTFM=
+                  - sHS3ei9wNyR/rGu5ghto/v0+h22wmdlD3TGxRyO/sgM=
       responses:
         '200':
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UserAuthMethodResponseDto'
-        '400':
-          description: Invalid request (check request)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '401':
-          description: Not allowed (unauthorized)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '404':
-          description: No entity found
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '500':
-          description: Internal Server Error (try later or contact support)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-      security: []
-  /api/evidences/import:
-    post:
-      tags:
-        - Evidence
-      summary: Import the evidence data into Swisscom Registration Authority Service (RA-Service).
-      description: If the API client is not yet authenticated, or the previous "bearer" token in the JWT format has expired, <br>the API client must call the service authentication API. After successful authentication, <br>RA service returns an "bearer" token in the JWT format, which the API client should include in all subsequence service calls. <br>To get the token for a Tenant see /auth/login API on how to login with that access key. <br> <br>Call "/import" to import a new evidence or to <b>replace</b> an existing evidence.<br>On successful creation of the evidence record in RA Service, RA Service returns the evidence enriched <br>with other meta data (e.g. evidence id, evidence status, compliant assurance level for digital signature).<br>Creates a new evidence based on the provided data. If pdfs are uploaded the signature is validated.<br>The public key in the certificate of the signature must match a Public Key added to the tenant which<br>is using this upload. <br>If the <b>userId</b> is given the T&Cs are considered to be signed and no SMS will be sent. In that case, the consentSerialNumber is also required.<br>If the <b>userId</b> is not present, the normal T&C workflow (sms with link) is triggered.<br>If <b>enforceArchive</b> is set, the new evidence is immediately archived and NO sms are sent in any case. <br>
-      operationId: importEvidence
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ImportUserEvidenceDto'
-        required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ImportedUserEvidenceDto'
-        '400':
-          description: Invalid request (check request)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '401':
-          description: Not allowed (unauthorized)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '404':
-          description: No entity found
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '500':
-          description: Internal Server Error (try later or contact support)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-  /api/evidences/verify:
-    post:
-      tags:
-        - Evidence
-        - AIS
-      summary: Verification API of evidence for qualified signature
-      description: Verify an evidence. <br>RA Service client can use the verification API for AIS to indirectly query whether a user <br>has completed the registration process for Qualified Signature in a specific context or in any context.
-      operationId: verifyEvidence
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserEvidenceVerificationRequestDto'
-        required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UserEvidenceVerificationResponseDto'
-        '400':
-          description: Invalid request (check request)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '401':
-          description: Not allowed (unauthorized)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '404':
-          description: No entity found
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '500':
-          description: Internal Server Error (try later or contact support)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-      security: []
-  /api/evidences/lookup:
-    post:
-      tags:
-        - Evidence
-        - AIS
-      summary: Lookup an evidence
-      description: Check (Lookup) an evidence based on the mobile number of the identified user in international format.<br/>The service is returning serialNumber assuranceLevel and jurisdiction if evidence is present.
-      operationId: lookupEvidence
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserEvidenceLookupRequestDto'
-        required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UserEvidenceLookupResponseDto'
-        '400':
-          description: Invalid request (check request)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '401':
-          description: Not allowed (unauthorized)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '404':
-          description: No entity found
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '500':
-          description: Internal Server Error (try later or contact support)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-      security: []
-  /api/info:
-    get:
-      tags:
-        - System Info
-      description: Retrieves the api info, such as its version
-      operationId: getApiInfo
-      responses:
-        '200':
-          description: OK
-          content:
-            application/vnd.sc.ras.api-info.v1+json:
-              schema:
-                $ref: '#/components/schemas/ApiInfoDto'
-        '400':
-          description: Invalid request (check request)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '401':
-          description: Not allowed (unauthorized)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '404':
-          description: No entity found
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '500':
-          description: Internal Server Error (try later or contact support)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-      security: []
-    head:
-      tags:
-        - System Info
-      description: Heartbeat endpoint, returns 200 OK if system is available
-      operationId: getPing
-      responses:
-        '200':
-          description: OK
-        '400':
-          description: Invalid request (check request)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '401':
-          description: Not allowed (unauthorized)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '404':
-          description: No entity found
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-        '500':
-          description: Internal Server Error (try later or contact support)
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-      security: []
-  /api/auth/login:
-    post:
-      tags:
-        - Security
-        - RA Mobile App
-      description: Login endpoint, return 200 OK and a JWT token if the authentication was successful
-      parameters:
-        - name: sourceApplication
-          in: header
-          description: Define the source application from where the login gets triggered (Needed to define the JWT session timeout)
-          allowEmptyValue: true
-          schema:
-            type: string
-            enum:
-              - WEB_ADMIN
-              - MOBILE_APP
-        - name: X-Auth-Key
-          in: header
-          description: The auth key for authentication header login. The auth key needs to be added to a specific tenant
-          schema:
-            type: string
-        - name: X-Auth-Tenant
-          in: header
-          description: The tenant the auth key belongs to
-          schema:
-            type: string
-      requestBody:
-        description: The MSISDN (Mobile Number) of the agent that wants to login and the tenant (claimed-identity) the agent belongs to Valid MSISDN formats:<br/>- +41791234567<br/>- 0041791234567<br/>- 41791234567<br/>- 0791234567
-        content:
-          application/json:
-            schema:
-              title: LoginRequestDto
-              type: object
-              properties:
-                msisdn:
-                  type: string
-                  description: The mobile number of the identified user in international format (only digits, no leading zeroes).
-                  example: '0791567794'
-                tenant:
-                  type: string
-                  description: The tenant.
-                  example: bootstrap
-        required: false
-      responses:
-        '200':
-          description: Successful operation
+          description: Result of the signature creation
           content:
             application/json:
               schema:
-                properties:
-                  token:
-                    type: string
-                    example: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJUZXN0Iiwic2NvcGVzIjpbImV2aWRlbmNlLmltcG9ydCJdLCJjb250ZXh0X3R5cGUiOiJURU5BTlQiLCJ0ZW5hbnQiOiJUZXN0Iiwic291cmNlX2FwcGxpY2F0aW9uIjoiTU9CSUxFX0FQUCIsImlzcyI6IlN3aXNzY29tIFJBIFNlcnZpY2UiLCJpYXQiOjE1ODE0MTk5NjMsImV4cCI6MTU4MTUwNjM2M30.R2UYyOKEiw1nFlP-56e7xCBWEipMcbCFRyz6qfMjU-plX8aydh4F9efe8z28XGlsaUXjzFAl4v6-TJqsZd1G9Q
-        '202':
-          description: Returned if user needs to login via consent URL
-        '401':
-          description: If the login failes
-        '403':
-          description: If the agent is not allowed to login or the MobileID challenge fails
-        '408':
-          description: The request to the mobile ID Server timed out (User didn't confirm/cancel in time)
-        '433':
-          description: The msisdn has no associated MobileID Account
-      security: []
-  /api/auth/logout:
-    get:
-      tags:
-        - Security
-        - RA Mobile App
-      description: Logout endpoint, return 200 OK if the logout was successful
-      responses:
-        '200':
-          description: Successful operation
+                $ref: '#/components/schemas/SignDocResponse'
+              example:
+                validationInfo:
+                  ocsp:
+                    - MII...AGk=
+                  crl:
+                    - MII...sNrI=
+                responseID: fdf41e6a-382a-4512-afe9-fd2a9bab30d7
+                SignatureObject:
+                  - MII2...23w4=
+                  - MII2...m5c=
+        '4XX':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '5XX':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'                
 components:
   schemas:
-    ErrorDto:
-      type: object
-      properties:
-        statusCode:
-          type: integer
-          format: int32
-        message:
-          type: string
-        exceptionClass:
-          type: string
-        errors:
-          type: array
-          items:
-            $ref: '#/components/schemas/ObjectError'
-    ObjectError:
-      type: object
-      properties:
-        codes:
-          type: array
-          items:
-            type: string
-        arguments:
-          type: array
-          items:
-            type: object
-        defaultMessage:
-          type: string
-        objectName:
-          type: string
-        code:
-          type: string
-    ImportUserEvidenceDto:
+    ErrorResponse:
       required:
-        - countryCode
-        - givenName
-        - idExpiryDate
-        - identityType
-        - language
-        - msisdn
-        - pdf
-        - serialNumber
-        - surname
+        - error
       type: object
       properties:
-        msisdn:
-          type: string
-          description: The mobile number of the identified user in the international format (only digits, no leading zeroes).
-          example: '41791234567'
-        surname:
-          pattern: ^([\p{IsLatin}\p{Space}\-'`,]*)$
-          type: string
-          description: Contains name strings for the family names of a person (SN)
-          example: Müller
-        givenName:
-          pattern: ^([\p{IsLatin}\p{Space}\-'`,]*)$
+        error:
           type: string
           description: |-
-            Name strings that are the part of a person's name that is not their
-                surname (G or GN)
-          example: Hans Peter
-        language:
-          pattern: ^[a-z]{2}
-          type: string
-          description: Contains a two-letter ISO language code (ex. de) used for language of correspondence of the identified person
-          example: de
-        countryCode:
-          pattern: ^[A-Z]{2,3}
-          type: string
-          description: Contains a three letter ISO 3166-1 alpha-3 country code where person resides (C)
-          example: CHE
-        identityType:
-          type: string
-          description: Three chars identifying the identity document (PAS for a passport IDC for national ID card)
-          example: PAS
-          enum:
-            - pas
-            - idc
-        serialNumber:
-          type: string
-          description: |
-            Identifier of the ID document (according to country and identity type
-                    reference), e.g. Passport or ID Number (S0001234)
-          example: S0001234
-        idExpiryDate:
-          type: string
-          description: |
-            Expiry date of the identification document, digits with hyphen-minus
-                    (YYYY-MM-DD)
-          format: date
-          example: '2030-12-31'
-        dateOfBirth:
-          type: string
-          description: The date of birth, digits with hyphen-minus (YYYY-MM-DD)
-          example: '1990-12-31'
-        placeOfBirth:
-          type: string
-          description: |
-            The place of birth, or the place where the identity is registered
-                    (national register), may be Bürgerort e.g. for Swiss citizens
-          example: Zürich
-        consentSerialNumber:
-          type: string
-          description: The serial number generated during the consent process. (if Serial start's with MID user registered with MobileID). Only stored if the userId field is also provided. If user has registered by using a third party IDP, the serial number will start with IDP.
-          example: MIDCHEN0AG5IJ8K3
-        title:
-          type: string
-          description: (T or TITLE)
-          example: Prof. Dr.
-        streetAddress:
-          type: string
-          description: (STREET)
-          example: Gerenstrasse
-        houseIdentifier:
-          type: string
-          description: Contains identifiers for a building within a location
-          example: '37'
-        localityName:
-          type: string
-          description: |
-            Identifies the place where the entry resides. The locality can be a
-                    city, county, township or other geographic region (L)
-          example: Zürich
-        stateOrProvinceName:
-          type: string
-          description: Identifies the state or province in which the entry resides. (ST or S)
-          example: ZH
-        emailAddress:
-          type: string
-          description: Identifies the email address of the entry (E)
-          example: demo@example.com
-        organizationName:
-          type: string
-          description: Identifies the organization in which the entry resides (O)
-          example: Demo corporation
-        organizationalUnitName:
-          type: string
-          description: Identifies a unit within the organization (OU)
-          example: Support
-        userId:
-          type: string
-          description: Contains computer system login names associated with the object (UID), If the userId is not present, the normal T&C workflow (sms with link) is triggered.
-          example: 550e8400-e29b-11d4-a716-446655440000
-        initialAssuranceLevel:
-          type: integer
-          description: The assurance level calculated at data submission
-          format: int32
-          example: 3
-        additionalAttributes:
-          type: object
-          additionalProperties:
-            type: string
-            description: Additonal attributes of this evidence
-            example: 'fax: "044 123 45 67"'
-          description: Additonal attributes of this evidence
-          example: 'fax: "044 123 45 67"'
-        pdfKey:
-          type: string
-          description: The asymmetric encrypted key to decrypt the pdf
-          example: TmljZSB0cnl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eSA7LSk=
-        pdf:
-          type: string
-          description: A base64-encoded string containing a PDF document <br>which proves the compliance of the user registration process. <br>The PDF must be digitally signed. The public key used in the signature <b>must</b> be preconfigured <br>in the RA Service by the RA Service Provider (i.e. Swisscom).
-          format: byte
-        tcPdf:
-          type: string
-          description: The T&C PDF. Can be omitted.
-          format: byte
-        claimedIdentity:
+            Error code. Common codes are:
+
+            * `invalid_request`: The request is missing a required parameter, includes an invalid
+              parameter value, includes a parameter more than once, or is otherwise malformed.
+            * `unauthorized_client`: The client is not authorized to call the API method.
+            * `access_denied`: The user, authorization server, or remote service denied the request.
+            * `unsupported_response_type`: The authorization server does not support obtaining an
+              authorization code using this method.
+            * `invalid_scope`: The requested scope is invalid, unknown, or malformed.
+            * `server_error`: The authorization server encountered an unexpected condition that
+              prevented it from fulfilling the request.
+            * `temporarily_unavailable`: The authorization server is currently unable to handle the
+              request due to a temporary overloading or maintenance of the server.
+            * `expired_token`: The access or refresh token is expired or has been revoked.
+            * `invalid_token`: The token provided is not a valid OAuth access or refresh token.
+          example: invalid_request
+        error_description:
           type: string
           description: |-
-            The claimed identity to use for this evidence. <br>
-                The tenant with this claimed identity must be allowed to do "Full import".
-          example: DIS01.UBS AG
-        importReference:
-          type: string
-          description: ImportReference can be used by the client to provide an external reference
-          example: eID1234567890
-        enforceArchive:
-          type: boolean
-          description: If enforceArchive is set, the new evidence will be immediately archived and NO sms are sent in any case.
-    AccessKeyServiceDto:
-      required:
-        - accessKeys
-        - active
-        - description
-        - name
-        - scopes
-        - tokenExpirationPeriod
+            Human readable description, written in a language that considers the requested language,
+            which provides additional information on the error.
+          example: Required parameter `SAD` is missing
+      description: |-
+        Outcome of operations with an HTTP status different from 200 OK
+    SignDocResponse:
       type: object
       properties:
-        id:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        scopes:
-          uniqueItems: true
+        SignatureObject:
           type: array
+          description: Signatures detached from the documents
           items:
             type: string
-        tokenExpirationPeriod:
-          type: integer
-          format: int32
-        accessKeys:
-          uniqueItems: true
+            format: Base64
+        responseID:
+          type: string
+          description: |-
+            Arbitrary value generated by the SCS uniquely identifying the response originated from
+            the SCS itself. This value is mainly used in asynchronous operation mode where the
+            client application shall provide the `responseID` value received with the initial
+            response as `requestID` of any subsequent request polling the pending signature results.
+        validationData:
+          $ref: '#/components/schemas/ValidationInfo'
+      description: |-
+        AdES signature creation response from signature creation service (SCS)
+    ValidationInfo:
+      type: object
+      description: |-
+        Validation information to be embedded into the resulting signed document in order to achieve
+        AdES-B-LT level.  Only returned when signatureFormat is `P` and conformanceLevel is
+        `AdES-B-LT`.  This structure is derived from CSC specification v2.
+      properties:
+        ocsp:
           type: array
+          description: OCSP response objects
           items:
             type: string
-        active:
-          type: boolean
-    AgentEvidenceDto:
-      required:
-        - firstName
-        - lastName
-        - msisdn
-        - role
-        - tenant
-      type: object
-      properties:
-        id:
-          type: string
-        msisdn:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-        firstName:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-        lastName:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-        mobileIdSerialNumber:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-        email:
-          type: string
-        tenant:
-          $ref: '#/components/schemas/TenantDto'
-        role:
-          $ref: '#/components/schemas/RoleDto'
-        assuranceLevel:
-          maximum: 4
-          minimum: 1
-          type: integer
-          format: int32
-        evidenceStatus:
-          type: string
-          enum:
-            - entered
-            - agentConfirmed
-            - agentConfirmationRejected
-            - waitingForTraining
-            - waitingForCaConfirmation
-            - confirmedAndSigned
-            - archived
-        language:
-          type: string
-        pdfKey:
-          type: string
-        pdfFileId:
-          type: string
-        caPdfFileId:
-          type: string
-        trainings:
+            format: Base64
+        crl:
           type: array
-          items:
-            $ref: '#/components/schemas/TrainingDto'
-        caUrlPage:
-          type: string
-        fullName:
-          type: string
-    ImportedUserEvidenceDto:
-      type: object
-      properties:
-        id:
-          type: string
-        msisdn:
-          type: string
-        vetter:
-          $ref: '#/components/schemas/AgentEvidenceDto'
-        tenant:
-          $ref: '#/components/schemas/TenantDto'
-        surname:
-          type: string
-        givenName:
-          type: string
-        language:
-          type: string
-        countryCode:
-          type: string
-        identityType:
-          type: string
-          enum:
-            - pas
-            - idc
-        serialNumber:
-          type: string
-        idExpiryDate:
-          type: string
-          format: date
-        dateOfBirth:
-          type: string
-        placeOfBirth:
-          type: string
-        consentSerialNumber:
-          type: string
-        title:
-          type: string
-        streetAddress:
-          type: string
-        houseIdentifier:
-          type: string
-        localityName:
-          type: string
-        stateOrProvinceName:
-          type: string
-        emailAddress:
-          type: string
-        organizationName:
-          type: string
-        organizationalUnitName:
-          type: string
-        userId:
-          type: string
-        evidenceStatus:
-          type: string
-          enum:
-            - entered
-            - waitingForAgentConfirmation
-            - agentConfirmed
-            - waitingForUserConfirmation
-            - confirmedAndSigned
-            - archived
-        additionalAttributes:
-          type: object
-          additionalProperties:
-            type: string
-        pdfKey:
-          type: string
-        pdfFileId:
-          type: string
-        claimedIdentity:
-          type: string
-        importReference:
-          type: string
-        enforceArchive:
-          type: boolean
-        tenantName:
-          type: string
-        tenantClaimedIdentities:
-          type: array
+          description: CRL objects
           items:
             type: string
-        tenantEvidenceValidity:
-          type: string
-          enum:
-            - global
-            - contextual
-        jurisdictions:
+            format: Base64
+    DocumentDigests:
+      required:
+        - hashAlgorithmOID
+        - hashes
+      type: object
+      properties:
+        hashes:
           type: array
-          items:
-            $ref: '#/components/schemas/UserEvidenceJurisdictionDto'
-    JurisdictionDto:
-      required:
-        - assuranceLevel
-        - name
-      type: object
-      properties:
-        assuranceLevel:
-          maximum: 4
-          minimum: 1
-          type: integer
-          format: int32
-        name:
-          type: string
-        active:
-          type: boolean
-    OrganizationDto:
-      required:
-        - countryCode
-        - name
-      type: object
-      properties:
-        name:
-          type: string
-        countryCode:
-          type: string
-    PublicKeyDto:
-      required:
-        - enabled
-        - key
-        - name
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        key:
-          type: string
-        enabled:
-          type: boolean
-    RoleDto:
-      required:
-        - alias
-        - name
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        alias:
-          type: string
-          enum:
-            - Global RA Agent
-            - Master RA Agent
-            - Standard RA Agent
-            - Access Key Login
-            - RA Operator
-        visibility:
-          uniqueItems: true
-          type: array
+          description: Hashes to be signed
           items:
             type: string
-    TenantDto:
+            format: Base64
+        hashAlgorithmOID:
+          type: string
+          description: Hash algorithm OID used to calculate the hashes to be signed
+          example: 2.16.840.1.101.3.4.2.1
+      description: |-
+        Hashes to be signed and the algorithm OID used to calculate those hashes.
+    SignDocRequest:
       required:
-        - active
-        - allowTrainingApproval
-        - description
-        - evidenceValidity
-        - evidenceValidityPeriod
-        - importStatus
-        - jurisdictions
-        - name
+        - SAD
+        - credentialID
+        - signatureFormat
+        - profile
+        - documentDigests
       type: object
       properties:
-        id:
+        profile:
           type: string
-        name:
+          description: |-
+            Identifies the protocol being used by the client application to communicate with the
+            SCS.
+          example: http://uri.etsi.org/19432/v1.1.1#/creationprofile#
+        signatureFormat:
           type: string
-          description: Tenant name
-          example: RA Tenant
-        description:
-          type: string
-          description: Tenant description
-        organizations:
-          type: array
-          items:
-            $ref: '#/components/schemas/OrganizationDto'
-        claimedIdentities:
-          type: array
-          items:
-            type: string
-        publicKeys:
-          type: array
-          items:
-            $ref: '#/components/schemas/PublicKeyDto'
-        evidenceValidity:
-          type: string
+          description: |-
+            Signature format. One of the following values:
+
+            * `C`: CAdES
+            * `P`: PAdES
           enum:
-            - global
-            - contextual
-        active:
-          type: boolean
-        allowTrainingApproval:
-          type: boolean
-        assignedAgents:
-          type: array
-          items:
-            $ref: '#/components/schemas/AgentEvidenceDto'
-        accessKeyServices:
-          type: array
-          items:
-            $ref: '#/components/schemas/AccessKeyServiceDto'
-        jurisdictions:
-          type: array
-          items:
-            $ref: '#/components/schemas/JurisdictionDto'
-        importStatus:
+            - C
+            - P
+        conformanceLevel:
           type: string
+          description: |-
+            Signature conformance level. One of the following values:
+
+            * `AdES-B-B`: 191x2 level B
+            * `AdES-B-T`: 191x2 level T
+            * `AdES-B-LT`: 191x2 level LT
           enum:
-            - disabled
-            - identification_import
-            - full_import
-        evidenceValidityPeriod:
-          minimum: 1
-          type: integer
-          format: int32
-        smsFromName:
-          maxLength: 11
-          minLength: 0
-          pattern: ^[a-zA-Z -]{0,11}
+            - AdES-B-B
+            - AdES-B-T
+            - AdES-B-LT
+          default: AdES-B-B
+        documentDigests:
+          $ref: '#/components/schemas/DocumentDigests'
+        requestID:
           type: string
-          description: Marketing name of the tenant, used in SMS
-          example: RA-Service
-        marketingName:
-          maxLength: 40
-          minLength: 0
-          pattern: ^[a-zA-Z -]{0,40}
+          description: |-
+            Data from the client application generally used to handle a signature transaction
+            identifier
+        SAD:
           type: string
-          description: Marketing name of the tenant
-          example: Swisscom Truts Services
-    TrainingDto:
-      type: object
-      properties:
-        status:
+          description: |-
+            Authentication data used to authorize the use of the signing key
+        credentialID:
           type: string
-          enum:
-            - pending
-            - success
-            - failed
-        trainingUrl:
-          type: string
-        expirationDate:
-          type: string
-          format: date
-        startDate:
-          type: string
-          format: date
-        endDate:
-          type: string
-          format: date
-        renewal:
-          type: boolean
-        enforced:
-          type: boolean
-    UserEvidenceJurisdictionDto:
-      type: object
-      properties:
-        jurisdiction:
-          type: string
-        initialAssuranceLevel:
-          type: integer
-          format: int32
-        currentAssuranceLevel:
-          type: integer
-          format: int32
-    UserEvidenceVerificationRequestDto:
-      required:
-        - msisdn
-      type: object
-      properties:
-        msisdn:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-          description: The mobile number of the identified user in international format (only digits, no leading zeroes).
-          example: '41791234567'
-        claimedIdentity:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-          description: 'The customer identification (as provided by the operator upon system setup, in RA: tenant).'
-          example: test-client
-        assuranceLevel:
-          maximum: 4
-          minimum: 1
-          type: integer
-          description: The assurance level to be tested (values 1-4/low to very high). Must be set to 3 for advanced signature or must be set to 4 in query for qualified signature.
-          format: int32
-          example: 4
-        distinguishedName:
-          type: string
-          description: The requested DN for the user (mandatory for assurance level 4). Combines the parameters pseudonym or combination of givenName and surname and countryCode in form of string representation of a X.500 Distinguished Name (RFC 4514), as agreed by the contract. The common-name RDN of the distinguished name cannot be empty. e.g.("distinguishedName":"gn=Hans, sn=Müller, cn=Hans Müller, c=CH" or "distinguishedName":"cn=not-empty, pn=41791567794, c=CH")
-          example: gn=Hans, sn=Müller, cn=Hans Müller, c=CH
-        jurisdiction:
-          type: string
-          description: Jurisdiction parameters zertes or eidas. If absent zertes is the default value.
-          example: zertes
-          enum:
-            - zertes
-            - eidas
-    UserAuthMethodRequestDto:
-      required:
-        - msisdn
-      type: object
-      properties:
-        msisdn:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-          description: The mobile number of the identified user in international format (only digits, no leading zeroes).
-          example: '41791234567'
-        email:
-          maximum: 40
-          minimum: 1
-          type: string
-          description: the user's email
-          example: john@example.com
-    UserAuthMethodResponseDto:
-      required:
-        - name
-        - uri
-      type: object
-      properties:
-        issuer:
-          type: string
-          description: The identity provider name providing the authentication method
-          example: postfinance
-        authenticator_type:
-          type: string
-          description: The authenticator type
-          example: PFM
-        assuranceLevel:
-          type: integer
-          description: The assurance level for Zertes to be tested (value 4 => QES very high, 2 => LCP some e.g. expired evidence)
-          format: int32
-          example: 4
-        assuranceLevelEidas:
-          type: integer
-          description: The assurance level for Eidas to be tested (value 4 => QES very high, 2 => LCP some e.g. expired evidence)
-          format: int32
-          example: 4
-        jurisdictions:
-          uniqueItems: true
-          type: array
-          description: Jurisdiction parameters zertes or eidas
-          example: ZERTES, EIDAS
-          items:
-            type: string
-            description: Jurisdiction parameters zertes or eidas
-            example: ZERTES, EIDAS
-        serialNumber:
-          type: string
-          description: The Mobile APP serial number
-          example: PMF456TZR12345678
-        loa4ExpiryDate:
-          type: string
-          description: LOA4 Expiration date
-          format: date
-          example: '2024-04-10'
-    UserEvidenceVerificationResponseDto:
-      required:
-        - evidenceId
-        - serialNumber
-      type: object
-      properties:
-        evidenceId:
-          type: string
-          description: The unique ID of the evidence
-          example: RAS125542552
-        serialNumber:
-          type: string
-          description: The mobileID serial number (which must be verified for QES)
-    UserEvidenceLookupRequestDto:
-      required:
-        - msisdn
-      type: object
-      properties:
-        msisdn:
-          maxLength: 2147483647
-          minLength: 1
-          type: string
-          description: The mobile number of the identified user in international format (only digits, no leading zeroes).<br/>The msisdn of the user evidence to lookup for
-          example: '41791234567'
-    UserEvidenceLookupResponseDto:
-      type: object
-      properties:
-        assuranceLevel:
-          type: integer
-          description: The assurance level for Zertes to be tested (value 4 => QES very high, 2 => LCP some e.g. expired evidence)
-          format: int32
-          example: 4
-        assuranceLevelEidas:
-          type: integer
-          description: The assurance level for Eidas to be tested (value 4 => QES very high, 2 => LCP some e.g. expired evidence)
-          format: int32
-          example: 4
-        jurisdictions:
-          uniqueItems: true
-          type: array
-          description: Jurisdiction parameters zertes or eidas
-          example: ZERTES, EIDAS
-          items:
-            type: string
-            description: Jurisdiction parameters zertes or eidas
-            example: ZERTES, EIDAS
-        msisdn:
-          type: string
-          description: The mobile number of the identified user in international format (only digits, no leading zeroes)
-          example: '41791234567'
-        serialNumber:
-          type: string
-          description: The SIM serial number (MID or SAS)
-          example: MIDCHE12345678
-        loa4ExpiryDate:
-          type: string
-          description: LOA4 Expiration date
-          format: date
-          example: '2024-04-10'
-    ApiInfoDto:
-      type: object
-      properties:
-        version:
-          type: string
-          description: Version.
-          example: 1.0.4
-        buildDate:
-          type: string
-          description: Build date.
-          format: date-time
-          example: '2020-02-18T13:11:07Z'
-        environment:
-          type: string
-          description: Environment
-          example: cloud,preprod
-        android:
-          $ref: '#/components/schemas/MobileVersion'
-        ios:
-          $ref: '#/components/schemas/MobileVersion'
-    MobileVersion:
-      type: object
-      properties:
-        minimumVersion:
-          type: integer
-          description: Minimum and current version
-          format: int32
-        currentVersion:
-          type: integer
-          description: Current version
-          format: int32
-  securitySchemes:
-    JWT:
-      type: http
-      description: 'Sample call Authorization: Bearer mytoken123.'
-      name: Authorization
-      in: header
-      scheme: bearer
-      bearerFormat: JWT
-    m2m:
-      type: oauth2
-      flows:
-        clientCredentials:
-          tokenUrl: https://apigw-secure-m2m.corproot.net/v1/jwt-auth/token
+          description: |-
+            Identifier associated to the private key and corresponding certificate
+      description: |-
+        AdES signature creation request to the signature creation service (SCS)
